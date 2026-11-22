@@ -2,73 +2,87 @@
 <html lang="es">
 <head>
   <meta charset="UTF-8">
-  <title>WebChat Multisalas</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>CitasYa - Chat y Encuentros</title>
   <style>
-    * { box-sizing: border-box; margin: 0; padding: 0; font-family: Arial, sans-serif; }
-    body { display: flex; flex-direction: column; height: 100vh; background: #f4f4f4; }
-    #top-bar { background: #2c3e50; color: white; padding: 8px 15px; display: flex; justify-content: space-between; align-items: center; font-size: 14px; gap: 10px; }
-    .controls-group { display: flex; align-items: center; gap: 6px; }
-    #top-bar input, #top-bar select { padding: 5px 8px; border-radius: 3px; border: none; font-size: 13px; }
-    #top-bar button { padding: 5px 10px; background: #3498db; color: white; border: none; border-radius: 3px; cursor: pointer; font-weight: bold; }
-    .btn-green { background: #2ecc71 !important; }
-    .btn-orange { background: #e67e22 !important; }
-    #tabs-bar { background: #e0e0e0; display: flex; border-bottom: 1px solid #ccc; padding: 5px 10px 0; gap: 4px; overflow-x: auto; }
-    .tab { padding: 8px 15px; background: #d0d0d0; border-radius: 5px 5px 0 0; cursor: pointer; font-size: 13px; display: flex; align-items: center; gap: 8px; border: 1px solid #bbb; border-bottom: none; }
-    .tab.active { background: #fff; font-weight: bold; color: #0275d8; }
-    .close-tab { color: #888; font-weight: bold; cursor: pointer; }
+    * { box-sizing: border-box; margin: 0; padding: 0; font-family: 'Segoe UI', Arial, sans-serif; }
+    body { display: flex; flex-direction: column; height: 100vh; background: #fdf2f5; }
+    #top-bar { background: linear-gradient(90deg, #fd267a, #ff6036); color: white; padding: 10px 15px; display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 8px; box-shadow: 0 2px 5px rgba(0,0,0,0.15); }
+    .brand { font-size: 18px; font-weight: bold; display: flex; align-items: center; gap: 6px; cursor: pointer; }
+    .controls-group { display: flex; align-items: center; gap: 5px; flex-wrap: wrap; }
+    #top-bar input, #top-bar select { padding: 5px 8px; border-radius: 15px; border: none; font-size: 12px; outline: none; }
+    #top-bar button { padding: 5px 12px; background: rgba(0,0,0,0.25); color: white; border: 1px solid rgba(255,255,255,0.4); border-radius: 15px; cursor: pointer; font-size: 12px; font-weight: bold; }
+    #top-bar button:hover { background: rgba(0,0,0,0.45); }
+    #tabs-bar { background: #ffe6ed; display: flex; border-bottom: 1px solid #f5c6d4; padding: 6px 10px 0; gap: 5px; overflow-x: auto; }
+    .tab { padding: 7px 14px; background: #ffd1df; border-radius: 10px 10px 0 0; cursor: pointer; font-size: 13px; display: flex; align-items: center; gap: 6px; color: #881c45; }
+    .tab.active { background: #fff; font-weight: bold; color: #fd267a; }
+    .close-tab { font-weight: bold; color: #b04a6e; }
     #main-container { display: flex; flex: 1; overflow: hidden; }
     #chat-area { flex: 1; background: #fff; display: flex; flex-direction: column; }
-    .messages-box { flex: 1; padding: 15px; overflow-y: auto; display: none; flex-direction: column; gap: 8px; }
+    .messages-box { flex: 1; padding: 15px; overflow-y: auto; display: none; flex-direction: column; gap: 10px; }
     .messages-box.active { display: flex; }
-    .msg { background: #f9f9f9; border: 1px solid #eee; padding: 8px 12px; border-radius: 6px; max-width: 85%; font-size: 14px; }
-    .msg-nick { font-weight: bold; margin-right: 6px; }
-    .msg-time { font-size: 11px; color: #999; margin-left: 8px; }
-    .sys-msg { background: #fff9db; border: 1px solid #ffe066; color: #856404; padding: 6px 12px; border-radius: 4px; font-size: 12px; text-align: center; align-self: center; }
-    #users-sidebar { width: 230px; background: #fafafa; border-left: 1px solid #ddd; display: flex; flex-direction: column; }
-    #users-header { padding: 10px; background: #eee; font-size: 13px; font-weight: bold; border-bottom: 1px solid #ddd; }
+    .msg { background: #fff5f8; border: 1px solid #ffe0ea; padding: 8px 12px; border-radius: 12px; max-width: 80%; font-size: 14px; }
+    .msg-nick { font-weight: bold; color: #d61c62; margin-right: 6px; }
+    .admin-nick { color: #d97706 !important; }
+    .msg-time { font-size: 10px; color: #999; margin-left: 8px; }
+    .msg img, .msg video { max-width: 240px; max-height: 240px; border-radius: 8px; display: block; margin-top: 6px; }
+    .sys-msg { background: #fff9db; color: #856404; padding: 5px 12px; border-radius: 12px; font-size: 12px; align-self: center; }
+    #users-sidebar { width: 240px; background: #fff9fb; border-left: 1px solid #f5c6d4; display: flex; flex-direction: column; }
+    #users-header { padding: 10px; background: #ffe6ed; font-size: 13px; font-weight: bold; color: #881c45; }
     #users-list { flex: 1; overflow-y: auto; list-style: none; }
-    #users-list li { padding: 8px 12px; border-bottom: 1px solid #f0f0f0; font-size: 13px; cursor: pointer; display: flex; align-items: center; gap: 8px; }
-    .status-dot { width: 8px; height: 8px; background: #2ecc71; border-radius: 50%; }
-    #input-bar { display: flex; padding: 10px; background: #eee; border-top: 1px solid #ccc; gap: 8px; }
-    #msg-input { flex: 1; padding: 10px; border: 1px solid #ccc; border-radius: 4px; font-size: 14px; }
-    #send-btn { padding: 10px 20px; background: #28a745; color: white; border: none; border-radius: 4px; cursor: pointer; font-weight: bold; }
+    #users-list li { padding: 8px 10px; border-bottom: 1px solid #fce8ef; font-size: 13px; display: flex; justify-content: space-between; align-items: center; }
+    .user-info { cursor: pointer; display: flex; align-items: center; gap: 5px; flex: 1; }
+    .kick-btn { background: #dc3545; color: white; border: none; border-radius: 4px; padding: 2px 6px; font-size: 11px; cursor: pointer; }
+    #input-bar { display: flex; padding: 10px; background: #ffe6ed; gap: 8px; align-items: center; }
+    #msg-input { flex: 1; padding: 10px 14px; border: 1px solid #f5c6d4; border-radius: 20px; font-size: 14px; outline: none; }
+    #media-btn { background: #ff6036; color: white; border: none; border-radius: 50%; width: 38px; height: 38px; cursor: pointer; font-size: 16px; display: none; }
+    #send-btn { padding: 10px 20px; background: linear-gradient(90deg, #fd267a, #ff6036); color: white; border: none; border-radius: 20px; cursor: pointer; font-weight: bold; }
   </style>
 </head>
 <body>
   <div id="top-bar">
-    <div><strong>WebChat</strong> | Apodo: <span id="my-nick">...</span></div>
+    <div class="brand" onclick="askAdmin()">🔥 CitasYa <span id="admin-badge" style="font-size:12px;"></span></div>
     <div class="controls-group">
       <select id="room-select"></select>
-      <button class="btn-green" onclick="joinSelectedRoom()">Entrar</button>
-      <input type="text" id="new-room-input" placeholder="Nueva sala...">
-      <button class="btn-orange" onclick="createNewRoom()">+ Crear sala</button>
+      <button onclick="openRoom(document.getElementById('room-select').value)">Entrar</button>
+      <input type="text" id="new-room-input" placeholder="Nueva sala..." style="width:110px;">
+      <button onclick="createNewRoom()">+ Crear</button>
     </div>
     <div class="controls-group">
-      <input type="text" id="new-nick-input" placeholder="Nuevo apodo...">
-      <button onclick="changeNick()">Cambiar</button>
+      <select id="gender-input">
+        <option value="👨">👨 Chico</option>
+        <option value="👩">👩 Chica</option>
+        <option value="🌈">🌈 Otro</option>
+      </select>
+      <input type="number" id="age-input" placeholder="Edad" min="18" max="99" style="width:55px;">
+      <input type="text" id="nick-input" placeholder="Tu apodo..." style="width:110px;">
+      <button onclick="saveProfile()">Guardar</button>
     </div>
   </div>
   <div id="tabs-bar"></div>
   <div id="main-container">
     <div id="chat-area"></div>
     <div id="users-sidebar">
-      <div id="users-header"><span id="online-count">0</span> en línea</div>
+      <div id="users-header">🔥 <span id="online-count">0</span> conectados</div>
       <ul id="users-list"></ul>
     </div>
   </div>
   <form id="input-bar" onsubmit="sendMessage(event)">
-    <input type="text" id="msg-input" placeholder="Escribe tu mensaje aquí..." autocomplete="off">
+    <input type="file" id="media-input" accept="image/*,video/*" style="display:none;" onchange="sendMedia(event)">
+    <button type="button" id="media-btn" title="Enviar foto o video en privado" onclick="document.getElementById('media-input').click()">📷</button>
+    <input type="text" id="msg-input" placeholder="Escribe un mensaje..." autocomplete="off">
     <button type="submit" id="send-btn">Enviar</button>
   </form>
   <script src="/socket.io/socket.io.js"></script>
   <script>
     const socket = io();
     let myUser = null;
-    let activeChat = '#General';
+    let isAdmin = false;
+    let activeChat = '#Solteros';
     const chats = {};
 
-    createChatTab('#General', '#General', false, false);
-    switchTab('#General');
+    createChatTab('#Solteros', '#Solteros', false, false);
+    switchTab('#Solteros');
 
     function renderRooms(rooms) {
       const s = document.getElementById('room-select');
@@ -78,13 +92,40 @@
 
     socket.on('init_data', ({ user, rooms }) => {
       myUser = user;
-      document.getElementById('my-nick').textContent = user.nick;
+      document.getElementById('nick-input').value = user.nick;
       renderRooms(rooms);
     });
 
     socket.on('update_rooms', renderRooms);
 
+    function saveProfile() {
+      socket.emit('update_profile', {
+        nick: document.getElementById('nick-input').value,
+        gender: document.getElementById('gender-input').value,
+        age: document.getElementById('age-input').value
+      });
+    }
+
+    // Acceso secreto de Moderador (Clic en el logo 🔥 CitasYa)
+    function askAdmin() {
+      if (isAdmin) return;
+      const pass = prompt('Clave de Moderador:');
+      if (pass) socket.emit('claim_admin', pass);
+    }
+
+    socket.on('admin_granted', () => {
+      isAdmin = true;
+      document.getElementById('admin-badge').textContent = '👑 MOD';
+      alert('Modo Moderador activado. Ahora verás un botón [X] para expulsar usuarios.');
+    });
+
+    socket.on('kicked', () => {
+      alert('Has sido expulsado por el Moderador.');
+      location.reload();
+    });
+
     function openRoom(room) {
+      if (!room) return;
       if (!chats[room]) {
         socket.emit('join_room', room);
         createChatTab(room, room, false, true);
@@ -92,24 +133,13 @@
       switchTab(room);
     }
 
-    function joinSelectedRoom() { openRoom(document.getElementById('room-select').value); }
-
     function createNewRoom() {
       const inp = document.getElementById('new-room-input');
-      let r = inp.value.trim().replace(/\s+/g, '-').substring(0, 25);
+      let r = inp.value.trim().replace(/\s+/g, '-').substring(0, 22);
       if (!r) return;
       if (!r.startsWith('#')) r = '#' + r;
       openRoom(r);
       inp.value = '';
-    }
-
-    function changeNick() {
-      const inp = document.getElementById('new-nick-input');
-      if (inp.value.trim()) {
-        socket.emit('change_nick', inp.value);
-        document.getElementById('my-nick').textContent = inp.value.trim();
-        inp.value = '';
-      }
     }
 
     function createChatTab(id, title, isPrivate, closable) {
@@ -118,7 +148,7 @@
       const tab = document.createElement('div');
       tab.className = 'tab';
       tab.id = `tab-${id}`;
-      tab.innerHTML = `<span>${title}</span>` + (closable ? `<span class="close-tab" onclick="closeTab(event, '${id}')">×</span>` : '');
+      tab.innerHTML = `<span>${isPrivate ? '💌 ' : ''}${title}</span>` + (closable ? `<span class="close-tab" onclick="closeTab(event, '${id}')">×</span>` : '');
       tab.onclick = () => switchTab(id);
       document.getElementById('tabs-bar').appendChild(tab);
 
@@ -139,6 +169,8 @@
         tab.style.background = '';
         box.classList.add('active');
         box.scrollTop = box.scrollHeight;
+        // Mostrar botón de cámara 📷 SOLO en chats privados
+        document.getElementById('media-btn').style.display = chats[id].isPrivate ? 'block' : 'none';
       }
     }
 
@@ -148,7 +180,7 @@
       delete chats[id];
       document.getElementById(`tab-${id}`).remove();
       document.getElementById(`box-${id}`).remove();
-      if (activeChat === id) switchTab('#General');
+      if (activeChat === id) switchTab('#Solteros');
     }
 
     function sendMessage(e) {
@@ -159,14 +191,31 @@
       inp.value = '';
     }
 
+    function sendMedia(e) {
+      const file = e.target.files[0];
+      if (!file || !chats[activeChat].isPrivate) return;
+      if (file.size > 14 * 1024 * 1024) return alert('El archivo debe pesar menos de 14MB');
+      const reader = new FileReader();
+      reader.onload = () => {
+        const mediaType = file.type.startsWith('video') ? 'video' : 'image';
+        socket.emit('send_message', { target: activeChat, media: reader.result, mediaType, isPrivate: true });
+      };
+      reader.readAsDataURL(file);
+      e.target.value = '';
+    }
+
     socket.on('receive_message', (d) => {
       if (d.isPrivate && !chats[d.chatId]) createChatTab(d.chatId, d.chatName || 'Privado', true, true);
       const box = document.getElementById(`box-${d.chatId}`);
       if (!box) return;
-      box.innerHTML += `<div class="msg"><span class="msg-nick" style="color:${d.senderColor}">${d.senderNick}:</span>${d.text}<span class="msg-time">${d.time}</span></div>`;
+      let mediaHTML = '';
+      if (d.media) {
+        mediaHTML = d.mediaType === 'video' ? `<video src="${d.media}" controls></video>` : `<img src="${d.media}">`;
+      }
+      box.innerHTML += `<div class="msg"><span class="msg-nick ${d.isAdmin ? 'admin-nick' : ''}">${d.senderNick}:</span>${d.text}<span class="msg-time">${d.time}</span>${mediaHTML}</div>`;
       box.scrollTop = box.scrollHeight;
       if (activeChat !== d.chatId && document.getElementById(`tab-${d.chatId}`)) {
-        document.getElementById(`tab-${d.chatId}`).style.background = '#ffeeba';
+        document.getElementById(`tab-${d.chatId}`).style.background = '#ffc2d6';
       }
     });
 
@@ -181,8 +230,20 @@
       ul.innerHTML = '';
       list.forEach(u => {
         const li = document.createElement('li');
-        li.innerHTML = `<span class="status-dot"></span> <span style="color:${u.color}; font-weight:bold;">${u.nick}</span>`;
-        if (myUser && u.id !== myUser.id) li.onclick = () => { createChatTab(u.id, u.nick, true, true); switchTab(u.id); };
+        const info = document.createElement('div');
+        info.className = 'user-info';
+        info.innerHTML = `<span>${u.isAdmin ? '👑' : u.gender}</span> <strong style="color:${u.isAdmin ? '#d97706' : '#333'}">${u.nick}</strong> <small>${u.age ? u.age+'a' : ''}</small>`;
+        if (myUser && u.id !== myUser.id) {
+          info.onclick = () => { createChatTab(u.id, u.nick, true, true); switchTab(u.id); };
+        }
+        li.appendChild(info);
+        if (isAdmin && myUser && u.id !== myUser.id) {
+          const kick = document.createElement('button');
+          kick.className = 'kick-btn';
+          kick.textContent = 'X';
+          kick.onclick = () => socket.emit('kick_user', u.id);
+          li.appendChild(kick);
+        }
         ul.appendChild(li);
       });
     });
