@@ -114,6 +114,9 @@
     }
 
     socket.on('admin_granted', () => {
+    socket.on('admin_denied', () => {
+      alert('Contraseña de Moderador incorrecta.');
+    });
       isAdmin = true;
       document.getElementById('admin-badge').textContent = '👑 MOD';
       alert('Modo Moderador activado. Ahora verás un botón [X] para expulsar usuarios.');
@@ -224,7 +227,7 @@
       if (box) { box.innerHTML += `<div class="sys-msg">${text}</div>`; box.scrollTop = box.scrollHeight; }
     });
 
-    socket.on('update_users', (list) => {
+      socket.on('update_users', (list) => {
       document.getElementById('online-count').textContent = list.length;
       const ul = document.getElementById('users-list');
       ul.innerHTML = '';
@@ -237,7 +240,15 @@
           info.onclick = () => { createChatTab(u.id, u.nick, true, true); switchTab(u.id); };
         }
         li.appendChild(info);
+
         if (isAdmin && myUser && u.id !== myUser.id) {
+          if (!u.isAdmin) {
+            const modBtn = document.createElement('button');
+            modBtn.style.cssText = 'background:#0275d8;color:white;border:none;border-radius:4px;padding:2px 5px;font-size:10px;cursor:pointer;margin-right:4px;';
+            modBtn.textContent = '+Mod';
+            modBtn.onclick = () => socket.emit('make_mod', u.id);
+            li.appendChild(modBtn);
+          }
           const kick = document.createElement('button');
           kick.className = 'kick-btn';
           kick.textContent = 'X';
