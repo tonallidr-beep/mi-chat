@@ -5,75 +5,99 @@ const path = require('path');
 
 const app = express();
 const server = http.createServer(app);
-const io = new Server(server);
+// Permitir archivos hasta 15MB (fotos y videos cortos)
+const io = new Server(server, { maxHttpBufferSize: 1.5e7 });
 
 app.use(express.static(path.join(__dirname, 'public')));
 
 const users = {};
-let SALAS = ['#General', '#Mexico', '#CDMX', '#Amistad', '#Videojuegos'];
+let SALAS = ['#Solteros', '#Citas', '#CDMX', '#Ligue', '#Amistad'];
 const palabrasProhibidas = /(spam|http|www\.|groseria)/i;
+const ADMIN_PASS = 'tonalli2026'; // <-- TU CLAVE DE MODERADOR
 
 io.on('connection', (socket) => {
-  const guestNick = `Guest${Math.floor(1000 + Math.random() * 9000)}`;
-  const colors = ['#d9534f', '#0275d8', '#5cb85c', '#f0ad4e', '#8e44ad', '#e67e22'];
-  const randomColor = colors[Math.floor(Math.random() * colors.length)];
-
-  users[socket.id] = { id: socket.id, nick: guestNick, color: randomColor, rooms: ['#General'] };
-  socket.join('#General');
+  const guestNick = `User${Math.floor(1000 + Math.random() * 9000)}`;
+  users[socket.id] = { id: socket.id, nick: guestNick, gender: '👤', age: '', isAdmin: false, rooms: ['#Solteros'] };
+  socket.join('#Solteros');
 
   socket.emit('init_data', { user: users[socket.id], rooms: SALAS });
   io.emit('update_users', Object.values(users));
-  io.to('#General').emit('system_msg', { target: '#General', text: `${guestNick} ha entrado a #General.` });
+  io.to('#Solteros').emit('system_msg', { target: '#Solteros', text: `${guestNick} entró a #Solteros.` });
 
-  socket.on('join_room', (rawRoomName) => {
-    let roomName = rawRoomName.trim().replace(/\s+/g, '-').substring(0, 25);
-    if (!roomName) return;
-    if (!roomName.startsWith('#')) roomName = '#' + roomName;
+  // Configurar perfil (Apodo, Género, Edad)
+  socket.on('update_profile', ({ nick, gender, age }) => {
+    const u = users[socket.id];
+    if (!u) return;
+    const oldNick = u.nick;
+    if (nick && nick.trim()) u.nick = nick.trim().substring(0, 18);
+    if (gender) u.gender = gender;
+    if (age) u.age = age.toString().substring(0, 2);
 
-    if (!SALAS.includes(roomName)) {
-      SALAS.push(roomName);
-      io.emit('update_rooms', SALAS);
-    }
-
-    if (!users[socket.id].rooms.includes(roomName)) {
-      users[socket.id].rooms.push(roomName);
-      socket.join(roomName);
-      io.to(roomName).emit('system_msg', { target: roomName, text: `${users[socket.id].nick} se ha unido a ${roomName}.` });
-    }
-  });
-
-  socket.on('leave_room', (roomName) => {
-    if (roomName === '#General') return;
-    users[socket.id].rooms = users[socket.id].rooms.filter(r => r !== roomName);
-    socket.leave(roomName);
-    io.to(roomName).emit('system_msg', { target: roomName, text: `${users[socket.id].nick} salió de ${roomName}.` });
-  });
-
-  socket.on('change_nick', (newNick) => {
-    const cleanNick = newNick.trim().substring(0, 20);
-    if (!cleanNick) return;
-    const oldNick = users[socket.id].nick;
-    users[socket.id].nick = cleanNick;
     io.emit('update_users', Object.values(users));
-    users[socket.id].rooms.forEach(room => {
-      io.to(room).emit('system_msg', { target: room, text: `${oldNick} ahora es conocido como ${cleanNick}` });
-    });
+    if (oldNick !== u.nick) {
+      u.rooms.forEach(r => io.to(r).emit('system_msg', { target: r, text: `${oldNick} ahora es ${u.nick}` }));
+    }
   });
 
-  socket.on('send_message', ({ target, text, isPrivate }) => {
-    const sender = users[socket.id];
-    if (!sender || !text.trim()) return;
+  // Activar modo Moderador
+  socket.on('claim_admin', (pass) => {
+    if (pass === ADMIN_PASS && users[socket.id]) {
+      users[socket.id].isAdmin = true;
+      socket.emit('admin_granted');
+      io.emit('update_users', Object.values(users));
+    }
+  });
 
-    if (palabrasProhibidas.test(text)) {
-      sender.rooms.forEach(room => {
-        io.to(room).emit('system_msg', { target: room, text: `${sender.nick} ha sido expulsado por Bot.` });
-      });
+  // Expulsar usuario (Solo Moderador)
+  socket.on('kick_user', (targetId) => {
+    if (!users[socket.id]?.isAdmin || !users[targetId]) return;
+    const kickedNick = users[targetId].nick;
+    io.emit('system_msg', { target: '#Solteros', text: `🛡️ Moderador expulsó a ${kickedNick} del chat.` });
+    io.to(targetId).emit('kicked');
+    io.sockets.sockets.get(targetId)?.disconnect();
+  });
+
+  socket.on('join_room', (rawRoom) => {
+    let room = rawRoom.trim().replace(/\s+/g, '-').substring(0, 22);
+    if (!room) return;
+    if (!room.startsWith('#')) room = '#' + room;
+    if (!SALAS.includes(room)) { SALAS.push(room); io.emit('update_rooms', SALAS); }
+    if (!users[socket.id].rooms.includes(room)) {
+      users[socket.id].rooms.push(room);
+      socket.join(room);
+      io.to(room).emit('system_msg', { target: room, text: `${users[socket.id].nick} se unió a ${room}.` });
+    }
+  });
+
+  socket.on('leave_room', (room) => {
+    if (room === '#Solteros') return;
+    users[socket.id].rooms = users[socket.id].rooms.filter(r => r !== room);
+    socket.leave(room);
+  });
+
+  // Mensajes de texto y Multimedia (solo en privado)
+  socket.on('send_message', ({ target, text, media, mediaType, isPrivate }) => {
+    const sender = users[socket.id];
+    if (!sender || (!text?.trim() && !media)) return;
+    if (media && !isPrivate) return; // Bloquear fotos/videos en salas públicas
+
+    if (!sender.isAdmin && text && palabrasProhibidas.test(text)) {
+      io.to('#Solteros').emit('system_msg', { target: '#Solteros', text: `🤖 Bot expulsó a ${sender.nick}.` });
       socket.disconnect();
       return;
     }
 
     const time = new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
-    const msgData = { senderId: socket.id, senderNick: sender.nick, senderColor: sender.color, text: text.trim(), time, isPrivate };
+    const msgData = {
+      senderId: socket.id,
+      senderNick: `${sender.isAdmin ? '👑 ' : ''}${sender.gender} ${sender.nick}${sender.age ? ' ('+sender.age+')' : ''}`,
+      isAdmin: sender.isAdmin,
+      text: text ? text.trim() : '',
+      media: isPrivate ? media : null,
+      mediaType,
+      time,
+      isPrivate
+    };
 
     if (isPrivate) {
       io.to(target).emit('receive_message', { ...msgData, chatId: socket.id, chatName: sender.nick });
@@ -84,17 +108,12 @@ io.on('connection', (socket) => {
   });
 
   socket.on('disconnect', () => {
-    const user = users[socket.id];
-    if (user) {
+    if (users[socket.id]) {
       delete users[socket.id];
       io.emit('update_users', Object.values(users));
-      user.rooms.forEach(room => {
-        io.to(room).emit('system_msg', { target: room, text: `${user.nick} se ha desconectado.` });
-      });
     }
   });
 });
 
 const PORT = process.env.PORT || 3000;
-server.listen(PORT, () => console.log(`Chat corriendo en puerto ${PORT}`));
-
+server.listen(PORT, () => console.log(`CitasYa corriendo en puerto ${PORT}`));
