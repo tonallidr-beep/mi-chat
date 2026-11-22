@@ -5,7 +5,6 @@ const path = require('path');
 
 const app = express();
 const server = http.createServer(app);
-// Permitir archivos hasta 15MB (fotos y videos cortos)
 const io = new Server(server, { maxHttpBufferSize: 1.5e7 });
 
 app.use(express.static(path.join(__dirname, 'public')));
@@ -13,18 +12,17 @@ app.use(express.static(path.join(__dirname, 'public')));
 const users = {};
 let SALAS = ['#Solteros', '#Citas', '#CDMX', '#Ligue', '#Amistad'];
 const palabrasProhibidas = /(spam|http|www\.|groseria)/i;
-const ADMIN_PASS = 'tonalli2026'; // <-- TU CLAVE DE MODERADOR
+const ADMIN_PASS = 'tonalli2026'; // <-- TU CONTRASEÑA MAESTRA
 
 io.on('connection', (socket) => {
   const guestNick = `User${Math.floor(1000 + Math.random() * 9000)}`;
-  users[socket.id] = { id: socket.id, nick: guestNick, gender: '👤', age: '', isAdmin: false, rooms: ['#Solteros'] };
+  users[socket.id] = { id: socket.id, nick: guestNick, gender: '👨', age: '', isAdmin: false, rooms: ['#Solteros'] };
   socket.join('#Solteros');
 
   socket.emit('init_data', { user: users[socket.id], rooms: SALAS });
   io.emit('update_users', Object.values(users));
   io.to('#Solteros').emit('system_msg', { target: '#Solteros', text: `${guestNick} entró a #Solteros.` });
 
-  // Configurar perfil (Apodo, Género, Edad)
   socket.on('update_profile', ({ nick, gender, age }) => {
     const u = users[socket.id];
     if (!u) return;
@@ -39,20 +37,32 @@ io.on('connection', (socket) => {
     }
   });
 
-  // Activar modo Moderador
+  // Bot da Moderador con contraseña
   socket.on('claim_admin', (pass) => {
     if (pass === ADMIN_PASS && users[socket.id]) {
       users[socket.id].isAdmin = true;
       socket.emit('admin_granted');
       io.emit('update_users', Object.values(users));
+      io.to('#Solteros').emit('system_msg', { target: '#Solteros', text: `🤖 Bot: ${users[socket.id].nick} ahora es Moderador 👑.` });
+    } else {
+      socket.emit('admin_denied');
     }
   });
 
-  // Expulsar usuario (Solo Moderador)
+  // Hacer Moderador a otro usuario
+  socket.on('make_mod', (targetId) => {
+    if (!users[socket.id]?.isAdmin || !users[targetId]) return;
+    users[targetId].isAdmin = true;
+    io.to(targetId).emit('admin_granted');
+    io.emit('update_users', Object.values(users));
+    io.to('#Solteros').emit('system_msg', { target: '#Solteros', text: `🤖 Bot: ${users[socket.id].nick} nombró Moderador a ${users[targetId].nick} 👑.` });
+  });
+
+  // Expulsar usuario
   socket.on('kick_user', (targetId) => {
     if (!users[socket.id]?.isAdmin || !users[targetId]) return;
     const kickedNick = users[targetId].nick;
-    io.emit('system_msg', { target: '#Solteros', text: `🛡️ Moderador expulsó a ${kickedNick} del chat.` });
+    io.to('#Solteros').emit('system_msg', { target: '#Solteros', text: `🤖 Bot: ${kickedNick} fue expulsado por Moderación.` });
     io.to(targetId).emit('kicked');
     io.sockets.sockets.get(targetId)?.disconnect();
   });
@@ -75,11 +85,10 @@ io.on('connection', (socket) => {
     socket.leave(room);
   });
 
-  // Mensajes de texto y Multimedia (solo en privado)
   socket.on('send_message', ({ target, text, media, mediaType, isPrivate }) => {
     const sender = users[socket.id];
     if (!sender || (!text?.trim() && !media)) return;
-    if (media && !isPrivate) return; // Bloquear fotos/videos en salas públicas
+    if (media && !isPrivate) return;
 
     if (!sender.isAdmin && text && palabrasProhibidas.test(text)) {
       io.to('#Solteros').emit('system_msg', { target: '#Solteros', text: `🤖 Bot expulsó a ${sender.nick}.` });
